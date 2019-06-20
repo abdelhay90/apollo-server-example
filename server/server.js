@@ -6,10 +6,10 @@ const appSchema = require('./schema');
 const appResolvers = require('./resolvers');
 const {models, sequelize} = require('./models');
 const http = require('http');
+const DataLoader = require('dataloader');
+const loaders = require('./loaders');
 
 const app = express();
-const eraseDatabaseOnSync = true;
-
 app.use(cors());
 
 const getMe = async req => {
@@ -27,6 +27,8 @@ const getMe = async req => {
 };
 
 const server = new ApolloServer({
+    introspection: true,
+    playground: true,
     typeDefs: appSchema,
     resolvers: appResolvers,
     formatError: error => {
@@ -41,10 +43,15 @@ const server = new ApolloServer({
             message,
         };
     },
-    context: async ({req, connection}) => {
+    "context": async ({req, connection}) => {
         if (connection) {
             return {
                 models,
+                loaders: {
+                    user: new DataLoader(keys =>
+                        loaders.user.batchUsers(keys, models),
+                    ),
+                },
             };
         }
 
@@ -55,6 +62,11 @@ const server = new ApolloServer({
                 models,
                 me,
                 secret: process.env.SECRET,
+                loaders: {
+                    user: new DataLoader(keys =>
+                        loaders.user.batchUsers(keys, models),
+                    ),
+                },
             };
         }
     },
@@ -107,11 +119,13 @@ const createUsersWithMessages = async date => {
 };
 
 const isTest = !!process.env.TEST_DATABASE;
-sequelize.sync({force: isTest}).then(async () => {
-    if (isTest) {
+const isProduction = !!process.env.DATABASE_URL;
+const port = process.env.PORT || 8000;
+sequelize.sync({force: isTest || isProduction}).then(async () => {
+    if (isTest || isProduction) {
         await createUsersWithMessages(new Date());
     }
-    httpServer.listen({port: 8000}, () => {
+    httpServer.listen({port}, () => {
         console.log('Apollo Server on http://localhost:8000/graphql');
     });
 });

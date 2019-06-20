@@ -9,6 +9,7 @@ const toCursorHash = string => Buffer.from(string).toString('base64');
 const fromCursorHash = string =>
     Buffer.from(string, 'base64').toString('ascii');
 module.exports = {
+
     Query: {
         messages: async (parent, {cursor, limit = 100}, {models}) => {
             const cursorOptions = cursor
@@ -28,7 +29,7 @@ module.exports = {
             });
 
             const hasNextPage = messages.length > limit;
-            const edges = !hasNextPage ? messages : messages.slice(0, -1);
+            const edges = hasNextPage ? messages.slice(0, -1) : messages;
 
             return {
                 edges,
@@ -41,7 +42,7 @@ module.exports = {
             };
         },
         message: async (parent, {id}, {models}) => {
-            return await models.Message.findByPk(id);
+            return await models.Message.findById(id);
         },
     },
 
@@ -59,7 +60,9 @@ module.exports = {
                 });
 
                 return message;
-            }),
+            },
+        ),
+
         deleteMessage: combineResolvers(
             isAuthenticated,
             isMessageOwner,
@@ -70,14 +73,14 @@ module.exports = {
     },
 
     Message: {
-        user: async (message, args, {models}) => {
-            return await models.User.findByPk(message.userId);
+        user: async (message, args, { loaders }) => {
+            return await loaders.user.load(message.userId);
         },
     },
 
     Subscription: {
         messageCreated: {
-            subscribe: () => pubsub.asyncIterator(EVENTS.MESSAGE.CREATED),
+            "subscribe": () => pubsub.asyncIterator(EVENTS.MESSAGE.CREATED),
         },
     },
 };

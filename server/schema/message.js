@@ -5,33 +5,27 @@ module.exports = gql`
         messages(cursor: String, limit: Int): MessageConnection!
         message(id: ID!): Message!
     }
-
     extend type Mutation {
         createMessage(text: String!): Message!
         deleteMessage(id: ID!): Boolean!
     }
-
     type MessageConnection {
         edges: [Message!]!
         pageInfo: PageInfo!
     }
-
     type PageInfo {
-        endCursor: String!
         hasNextPage: Boolean!
+        endCursor: String!
     }
-
     type Message {
         id: ID!
         text: String!
-        user: User!
         createdAt: Date!
+        user: User!
     }
-
     extend type Subscription {
         messageCreated: MessageCreated!
     }
-
     type MessageCreated {
         message: Message!
     }
