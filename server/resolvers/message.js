@@ -2,6 +2,7 @@ const {ForbiddenError} = require('apollo-server');
 const {combineResolvers} = require('graphql-resolvers');
 const {isAuthenticated, isMessageOwner} = require('./authorization');
 const Sequelize = require('sequelize');
+const {pubsub, EVENTS} = require('../subscription');
 
 const toCursorHash = string => Buffer.from(string).toString('base64');
 
@@ -9,7 +10,7 @@ const fromCursorHash = string =>
     Buffer.from(string, 'base64').toString('ascii');
 module.exports = {
     Query: {
-        messages: async (parent, { cursor, limit = 100 }, { models }) => {
+        messages: async (parent, {cursor, limit = 100}, {models}) => {
             const cursorOptions = cursor
                 ? {
                     where: {
@@ -47,20 +48,18 @@ module.exports = {
     Mutation: {
         createMessage: combineResolvers(
             isAuthenticated,
-            async (parent, {text}, {me, models}) => {
-                if (!me) {
-                    throw new ForbiddenError('Not authenticated as user.');
-                }
-                try {
-                    return await models.Message.create({
-                        text,
-                        userId: me.id,
-                    });
-                } catch (error) {
-                    throw new Error(error);
-                }
-            }),
+            async (parent, {text}, {models, me}) => {
+                const message = await models.Message.create({
+                    text,
+                    userId: me.id,
+                });
 
+                pubsub.publish(EVENTS.MESSAGE.CREATED, {
+                    messageCreated: {message},
+                });
+
+                return message;
+            }),
         deleteMessage: combineResolvers(
             isAuthenticated,
             isMessageOwner,
@@ -73,6 +72,12 @@ module.exports = {
     Message: {
         user: async (message, args, {models}) => {
             return await models.User.findByPk(message.userId);
+        },
+    },
+
+    Subscription: {
+        messageCreated: {
+            subscribe: () => pubsub.asyncIterator(EVENTS.MESSAGE.CREATED),
         },
     },
 };

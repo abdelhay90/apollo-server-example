@@ -5,6 +5,7 @@ const express = require('express');
 const appSchema = require('./schema');
 const appResolvers = require('./resolvers');
 const {models, sequelize} = require('./models');
+const http = require('http');
 
 const app = express();
 const eraseDatabaseOnSync = true;
@@ -40,18 +41,29 @@ const server = new ApolloServer({
             message,
         };
     },
-    context: async ({ req }) => {
-        const me = await getMe(req);
+    context: async ({req, connection}) => {
+        if (connection) {
+            return {
+                models,
+            };
+        }
 
-        return {
-            models,
-            me,
-            secret: process.env.SECRET,
-        };
+        if (req) {
+            const me = await getMe(req);
+
+            return {
+                models,
+                me,
+                secret: process.env.SECRET,
+            };
+        }
     },
 });
 
 server.applyMiddleware({app, path: '/graphql'});
+
+const httpServer = http.createServer(app);
+server.installSubscriptionHandlers(httpServer);
 
 const createUsersWithMessages = async date => {
     await models.User.create(
@@ -98,7 +110,7 @@ sequelize.sync({force: eraseDatabaseOnSync}).then(async () => {
     if (eraseDatabaseOnSync) {
         await createUsersWithMessages(new Date());
     }
-    app.listen({port: 8000}, () => {
+    httpServer.listen({port: 8000}, () => {
         console.log('Apollo Server on http://localhost:8000/graphql');
     });
 });
