@@ -4,8 +4,10 @@ const {isAuthenticated, isMessageOwner} = require('./authorization');
 
 module.exports = {
     Query: {
-        messages: async (parent, args, {models}) => {
-            return await models.Message.findAll();
+        messages: async (parent, {offset = 0, limit = 100}, {models},) => {
+            return await models.Message.findAll({
+                offset, limit
+            });
         },
         message: async (parent, {id}, {models}) => {
             return await models.Message.findByPk(id);
