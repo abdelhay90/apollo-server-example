@@ -8,9 +8,11 @@ const {models, sequelize} = require('./models');
 const http = require('http');
 const DataLoader = require('dataloader');
 const loaders = require('./loaders');
+const morgan = require('morgan');
 
 const app = express();
 app.use(cors());
+app.use(morgan('dev'));
 
 const getMe = async req => {
     const token = req.headers['x-token'];
@@ -77,6 +79,20 @@ server.applyMiddleware({app, path: '/graphql'});
 const httpServer = http.createServer(app);
 server.installSubscriptionHandlers(httpServer);
 
+const isTest = !!process.env.TEST_DATABASE;
+const isProduction = !!process.env.DATABASE_URL;
+const port = process.env.PORT || 8000;
+
+sequelize.sync({force: isTest || isProduction}).then(async () => {
+    if (isTest || isProduction) {
+        await createUsersWithMessages(new Date());
+    }
+    httpServer.listen({port}, () => {
+        console.log('Apollo Server on http://localhost:8000/graphql');
+    });
+});
+
+
 const createUsersWithMessages = async date => {
     await models.User.create(
         {
@@ -117,17 +133,3 @@ const createUsersWithMessages = async date => {
         },
     );
 };
-
-const isTest = !!process.env.TEST_DATABASE;
-const isProduction = !!process.env.DATABASE_URL;
-const port = process.env.PORT || 8000;
-sequelize.sync({force: isTest || isProduction}).then(async () => {
-    if (isTest || isProduction) {
-        await createUsersWithMessages(new Date());
-    }
-    httpServer.listen({port}, () => {
-        console.log('Apollo Server on http://localhost:8000/graphql');
-    });
-});
-
-

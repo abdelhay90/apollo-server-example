@@ -29,11 +29,12 @@ module.exports = (sequelize, DataTypes) => {
         },
         role: {
             type: DataTypes.STRING,
+            allowNull: true
         },
     });
 
     User.associate = models => {
-        User.hasMany(models.Message, {onDelete: 'CASCADE'});
+        User.hasMany(models.Message, { onDelete: 'CASCADE' });
     };
 
     User.findByLogin = async login => {

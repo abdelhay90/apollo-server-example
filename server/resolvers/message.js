@@ -9,9 +9,8 @@ const toCursorHash = string => Buffer.from(string).toString('base64');
 const fromCursorHash = string =>
     Buffer.from(string, 'base64').toString('ascii');
 module.exports = {
-
     Query: {
-        messages: async (parent, {cursor, limit = 100}, {models}) => {
+        messages: async (parent, { cursor, limit = 100 }, { models }) => {
             const cursorOptions = cursor
                 ? {
                     where: {
@@ -41,7 +40,7 @@ module.exports = {
                 },
             };
         },
-        message: async (parent, {id}, {models}) => {
+        message: async (parent, { id }, { models }) => {
             return await models.Message.findById(id);
         },
     },
@@ -49,14 +48,14 @@ module.exports = {
     Mutation: {
         createMessage: combineResolvers(
             isAuthenticated,
-            async (parent, {text}, {models, me}) => {
+            async (parent, { text }, { models, me }) => {
                 const message = await models.Message.create({
                     text,
                     userId: me.id,
                 });
 
                 pubsub.publish(EVENTS.MESSAGE.CREATED, {
-                    messageCreated: {message},
+                    messageCreated: { message },
                 });
 
                 return message;
@@ -66,8 +65,8 @@ module.exports = {
         deleteMessage: combineResolvers(
             isAuthenticated,
             isMessageOwner,
-            async (parent, {id}, {models}) => {
-                return await models.Message.destroy({where: {id}});
+            async (parent, { id }, { models }) => {
+                return await models.Message.destroy({ where: { id } });
             },
         ),
     },
@@ -80,7 +79,7 @@ module.exports = {
 
     Subscription: {
         messageCreated: {
-            "subscribe": () => pubsub.asyncIterator(EVENTS.MESSAGE.CREATED),
+            subscribe: () => pubsub.asyncIterator(EVENTS.MESSAGE.CREATED),
         },
     },
 };
