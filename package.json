@@ -9,7 +9,7 @@
   "scripts": {
     "start": "npx nodemon --exec babel-node src/index.js",
     "test:run-server": "TEST_DATABASE=users_test_db npm start",
-    "test:execute-test": "mocha --require @babel/register 'src/**/*.spec.js'"
+    "test": "mocha --require @babel/register 'src/**/*.spec.js'"
   },
   "keywords": [],
   "author": "",
@@ -33,12 +33,12 @@
     "morgan": "^1.9.1",
     "nodemon": "^1.19.1",
     "pg": "^7.6.1",
-    "sequelize": "^4.41.2",
+    "sequelize": "^6.0.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "axios": "^0.19.0",
     "chai": "^4.2.0",
-    "mocha": "^5.2.0",
+    "mocha": "^5.2.0"
   }
 }
